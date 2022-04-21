@@ -59,12 +59,14 @@ begin
 	);
 
 	srcgen : block
-		signal fval : unsigned(er1_width-1 downto 0) := X"00112233_44556677_8899aabb_ccddeeff_00112233_44556677_8899aabb_12345678";
+		signal freerunning : unsigned(31 downto 0) := (others => '0');
+		signal fval : unsigned(er1_width-33 downto 0) := X"00112233_44556677_8899aabb_ccddeeff_00112233_44556677_12345678";
 	begin
 		process(clk_i) begin
 			if rising_edge(clk_i) then
+				freerunning<=freerunning+1;
 				if ffull='0' then
-					fwr<=std_logic_vector(fval);
+					fwr<=std_logic_vector(freerunning)&std_logic_vector(fval);
 					fwr_en<='1';			
 					fval<=fval+1;
 				else

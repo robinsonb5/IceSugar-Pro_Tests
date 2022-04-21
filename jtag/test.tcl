@@ -8,7 +8,11 @@ scan_chain
 # select the ER1 register (256 bits wide in this design)
 irscan ecp5.tap 0x32
 
-puts "Test the FIFO - all numbers should rise consecutively."
+puts ""
+puts "Test the FIFO - the last few digits should rise consecuctively."
+puts "The first eight digits are a freerunning counter, effectively a system"
+puts "timestamp. On the first run this should rise consecutively until the FIFO"
+puts "is full, then show the point at which room next becomes available."
 
 # Shift all 256 bits repeatedly - the result should increment by 1 each time
 for { set j 0 } { $j < 128 } { incr j } {
@@ -25,8 +29,9 @@ for { set j 0 } { $j < 8 } { incr j } {
 }
 
 # Return to the RUN/IDLE state in preparation for the next shift
-pathmove DRPAUSE DREXIT2 DRUPDATE RUN/IDLE
+# pathmove DRPAUSE DREXIT2 DRUPDATE RUN/IDLE
 
+# Shift out 
 set this [drscan ecp5.tap 256 0 ]
 puts 0x$this
 

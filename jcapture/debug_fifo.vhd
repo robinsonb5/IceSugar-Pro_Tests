@@ -4,8 +4,12 @@ use ieee.numeric_std.all;
 
 -- FIFO queue for debug channel.
 -- Asynchronous, fall-through semantics.
--- Wastes up to one quarter of the storage just for simplicity
--- of generating the full signals.
+
+-- Also has a "lead in" mode, activated by setting "lead" to "01", "10" or "11".
+-- While "lead in" mode is active, the FIFO will be continuously filled, and the
+-- read pointer will be forced to track the write pointer with an offset of
+-- 1/4 the FIFO depth, for "01", 1/2 for "10" and 3/4 for "11".
+
 
 ENTITY debug_fifo IS
 	generic (
@@ -44,8 +48,11 @@ signal inptr_gray : unsigned(depth-1 downto 0) := (others=>'0');
 signal outptr_gray : unsigned(depth-1 downto 0) := (others => '0');
 signal outptr_prev_gray : unsigned(depth-1 downto 0) := to_unsigned((2**(depth-1)),depth); -- Set MSB only
 
+-- Leadin signals - enable, value and level-matching req/ack signals to coordinate the two sides.
 signal leadin : std_logic;
 signal leadptr : unsigned(depth-1 downto 0) := (others => '0');
+signal lead_wr : std_logic :='0';
+signal lead_rd : std_logic :='0';
 
 begin
 
@@ -64,6 +71,9 @@ signal reset_rd : std_logic_vector(1 downto 0);
 signal leadin_sync : std_logic;
 signal leadin_sync2 : std_logic;
 signal leadin_d : std_logic;
+signal lead_wr_sync : std_logic := '0';
+signal lead_wr_sync2 : std_logic := '0';
+signal lead_rd_d : std_logic;
 begin
 
 	process(rd_clk) begin
@@ -74,27 +84,33 @@ begin
 			leadin_sync2 <= leadin;
 			leadin_sync <= leadin_sync2;
 			leadin_d <= leadin_sync;
+			lead_wr_sync2 <= lead_wr;
+			lead_wr_sync <= lead_wr_sync2;
 		end if;
 	end process;
 
 	rd_trigger <= '1' when rd_en='1' and empty_c='0' else '0';
-	empty_c <= '1' when inptr_gray_sync = outptr_gray else'0';
+
+	empty_c <= '1' when lead_rd /= lead_wr_sync or inptr_gray_sync = outptr_gray else'0';
 	empty <= empty_c or leadin_sync;	-- Make sure the FIFO's considered empty while a lead-in is in progress...
 
-	outptr_next<=leadptr when leadin_sync='1' else outptr+1;
-	outptr_prev<=outptr-1;
+	outptr_next<=leadptr+1 when lead_rd /= lead_wr_sync else outptr+1;
+	outptr_prev<=leadptr-1 when lead_rd /= lead_wr else outptr-1;
 
 	process(rd_clk,reset_rd(1)) begin
 		if reset_rd(1)='0' then
 			outptr<=(others=>'0');
 			outptr_gray<=(others=>'0');
 			outptr_prev_gray<=to_unsigned((2**(depth-1)),depth); -- Set MSB only
+			lead_rd<='0';
 		elsif rising_edge(rd_clk) then
 			dout <= storage(to_integer(outptr_gray));
-			if rd_trigger='1' or leadin_sync='1' then
+			lead_rd<=lead_rd_d;
+			if rd_trigger='1' or lead_rd /= lead_wr_sync then
 				outptr<=outptr_next;
+				outptr_gray <= togray(outptr_next);
 				outptr_prev_gray<=togray(outptr_prev);
-				outptr_gray <= togray(outptr_next);				
+				lead_rd_d <= lead_wr_sync;	-- Acknowledge that the leadin ptr has been adopted.
 			end if;
 		end if;
 	end process;
@@ -112,22 +128,30 @@ signal inptr : unsigned(depth-1 downto 0) := (others=>'0');
 signal inptr_next : unsigned(depth-1 downto 0);
 signal reset_wr : std_logic_vector(1 downto 0);
 signal leadptr_msbs : unsigned(1 downto 0);
+signal leadptr_gray : unsigned(depth-1 downto 0);
+signal fullptr : unsigned(depth-1 downto 1);
+signal leadprev : std_logic;
+signal lead_rd_sync : std_logic := '0';
+signal lead_rd_sync2 : std_logic := '0';
 begin
 
 	leadin <= '0' when lead="00" else '1';
-
+	fullptr <= outptr_prev_gray_sync when lead_rd_sync = lead_wr else leadptr_gray(depth-1 downto 1);
+	
 	process(wr_clk) begin
 		if rising_edge(wr_clk) then
 			reset_wr <= reset_wr(0) & reset_n;
 			outptr_prev_gray_sync2<=outptr_prev_gray(outptr_prev_gray'high downto 1); -- Ignore the lowest bit to provide some headroom.
 			outptr_prev_gray_sync<=outptr_prev_gray_sync2;
+			lead_rd_sync2 <= lead_rd;
+			lead_rd_sync <= lead_rd_sync2;
 		end if;
 	end process;
 
 	-- We consider the FIFO full when outptr_prev_gray == inptr_gray, so the write pointer is about to
 	-- catch up with the read pointer (ignoring the LSB to give a little extra headroom, so the FIFO can accept one further
 	-- entry in the cycle during which full goes high).
-	full <= '1' when lead="00" and inptr_gray(inptr_gray'high downto 1) = outptr_prev_gray_sync else '0';
+	full <= '1' when leadin='1' or inptr_gray(inptr_gray'high downto 1) = fullptr else '0';
 
 	inptr_next<=inptr+1;
 	leadptr_msbs<=inptr(depth-1 downto depth-2) + unsigned(lead);
@@ -136,14 +160,21 @@ begin
 		if reset_wr(1)='0' then
 			inptr<=(others=>'0');
 			inptr_gray<=(others=>'0');
+			lead_wr<='0';
 		elsif rising_edge(wr_clk) then
-			if wr_en='1' then
+			if wr_en='1' or leadin='1' then
 				storage(to_integer(inptr_gray))<=din;
 				inptr<=inptr_next;
 				inptr_gray <= togray(inptr_next);
 			end if;
-			if lead/="00" then
-				leadptr<=leadptr_msbs & inptr(depth-3 downto 0);
+			if leadin='1' then
+				leadptr<=leadptr_msbs & inptr(depth-3 downto 0); -- Passed to the read-side logic when leadin ends
+				leadptr_gray <= togray(leadptr-1); -- Used as a temporary fullptr while the read-side logic catches up.
+			end if;
+			leadprev <= leadin;	
+			if leadprev='1' and leadin='0' then
+				-- Let the read side logic know we're recording...
+				lead_wr <= not lead_rd_sync;
 			end if;
 		end if;
 	end process;

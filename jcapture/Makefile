@@ -1,7 +1,7 @@
 TARGET=jtagtest
 TOP=jtagtest
 
-VHDL_OBJS=debug_fifo.vhd top.vhd
+VHDL_OBJS=cdc_pulse.vhd debug_fifo.vhd vjtag_ecp5.vhd jcapture_pkg.vhd jcapture.vhd top.vhd
 
 TRELLIS=/usr/local/share/trellis
 

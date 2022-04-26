@@ -47,10 +47,6 @@ architecture rtl of jcapture is
 	signal fifo_empty : std_logic;
 
 	signal trigger : std_logic;
-	
-	type capstate_t is (STATE_IDLE,STATE_ID,STATE_CAPTURE,STATE_FILL,STATE_READ,STATE_WRITE,STATE_SETLEADIN,STATE_SETMASK,STATE_SETINVERT,STATE_SETEDGE);
-	signal capstate : capstate_t;
-	signal busy : std_logic;
 begin
 
 -- Capture triggering logic
@@ -84,22 +80,18 @@ begin
 			invert <= (others => '0');
 			edge <= (others => '0');
 		elsif rising_edge(clk) then
-			case capstate is
-				when STATE_SETMASK =>
-					if vdr_update='1' then
+			if vdr_update='1' then
+				case vir_from_jtag is
+					when jcapture_ir_setmask =>
 						mask <= vdr_from_jtag(jcapture_triggerwidth-1 downto 0);
-					end if;
-				when STATE_SETINVERT =>
-					if vdr_update='1' then
+					when jcapture_ir_setinvert =>
 						invert <= vdr_from_jtag(jcapture_triggerwidth-1 downto 0);
-					end if;
-				when STATE_SETEDGE =>
-					if vdr_update='1' then
+					when jcapture_ir_setedge =>
 						edge <= vdr_from_jtag(jcapture_triggerwidth-1 downto 0);
-					end if;
-				when others =>
-					null;
-			end case;
+					when others =>
+						null;
+				end case;
+			end if;
 		end if;
 	end process;
 
@@ -118,38 +110,38 @@ begin
 
 end block;
 
+capturelogic : block
+	type capstate_t is (STATE_IDLE,STATE_CAPTURE,STATE_FILL,STATE_READ);
+	signal capstate : capstate_t;
+	signal busy : std_logic;
+begin
 
-	process(clk) begin
-		if rising_edge(clk) then
+	process(clk,reset_n) begin
+		if reset_n='0' then
+			capstate<=STATE_IDLE;
+			fifo_wr<='0';
+		elsif rising_edge(clk) then
+
+			update<='0';
+			if vdr_update='1' then
+				case vir_from_jtag is
+					when jcapture_ir_write =>
+						q <= vdr_from_jtag;
+						update <= '1';					
+					when jcapture_ir_setleadin =>
+						leadin <= vdr_from_jtag(1 downto 0);
+					when others =>
+						null;
+				end case;
+			end if;
+	
 			to_fifo<=d;
 			fifo_wr<='0';
-			update<='0';
+
 			case capstate is
 				when STATE_IDLE =>
-					if vir_update='1' then
-						case vir_from_jtag is
-							when jcapture_ir_capture =>
-								capstate<=STATE_CAPTURE;
-							when jcapture_ir_setmask =>
-								capstate<=STATE_SETMASK;
-							when jcapture_ir_setinvert =>
-								capstate<=STATE_SETINVERT;
-							when jcapture_ir_setedge =>
-								capstate<=STATE_SETEDGE;
-							when jcapture_ir_setleadin =>
-								capstate<=STATE_SETLEADIN;
-							when jcapture_ir_write =>
-								capstate<=STATE_WRITE;
-							when jcapture_ir_read =>
-								capstate<=STATE_READ;
-							when others =>
-								capstate<=STATE_IDLE;
-						end case;
-					end if;
+					null;
 				when STATE_CAPTURE =>
-					if vir_update='1' and vir_from_jtag=jcapture_ir_abort then
-						capstate<=STATE_IDLE;
-					end if;
 					if trigger='1' then
 						capstate<=STATE_FILL;
 						leadin<="00";
@@ -164,37 +156,29 @@ end block;
 					if fifo_empty='1' then
 						capstate<=STATE_IDLE;
 					end if;
-				when STATE_WRITE =>
-					if vdr_update='1' then
-						q <= vdr_from_jtag;
-						update <= '1';
-						capstate<=STATE_IDLE;
-					end if;
-				when STATE_SETMASK =>
-					if vdr_update='1' then
-						capstate<=STATE_IDLE;
-					end if;
-				when STATE_SETINVERT =>
-					if vdr_update='1' then
-						capstate<=STATE_IDLE;
-					end if;
-				when STATE_SETEDGE =>
-					if vdr_update='1' then
-						capstate<=STATE_IDLE;
-					end if;
-				when STATE_SETLEADIN =>
-					if vdr_update='1' then
-						capstate<=STATE_IDLE;
-						leadin<=vdr_from_jtag(1 downto 0);
-					end if;
 				when others =>
 					capstate<=STATE_IDLE;
 			end case;
+			
+			if vir_update='1' then
+				case vir_from_jtag is				
+					when jcapture_ir_capture =>
+						capstate <= STATE_CAPTURE;
+					when jcapture_ir_ABORT =>
+						capstate <= STATE_IDLE;
+					when others =>
+						null;
+				end case;
+			end if;
+
 		end if;
 	end process;
 
 	busy <= '0' when capstate=STATE_IDLE else '1';
 	vir_to_jtag<=(3=>'1',2=>fifo_empty,1=>fifo_full,0=>busy,others=>'0');
+
+end block;
+
 	vjtag : entity work.vjtag_ecp5
 	generic map (
 		irwidth => jcapture_irsize,

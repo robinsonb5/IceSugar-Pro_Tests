@@ -66,7 +66,7 @@ flush_fifo ecp5.tap
 
 puts "Turning on LED"
 virscan ecp5.tap $jcapture_write
-vdrscan ecp5.tap 256 3
+vdrscan ecp5.tap 256 1
 
 puts "Setting capture parameters..."
 virscan ecp5.tap $jcapture_setmask
@@ -93,8 +93,17 @@ virscan ecp5.tap $jcapture_setleadin
 vdrscan ecp5.tap 256 3
 
 virscan ecp5.tap $jcapture_capture]
+
+# Change LED colour
+virscan ecp5.tap $jcapture_write
+vdrscan ecp5.tap 256 2
+
 puts "Waiting for the FIFO to fill"
 wait_fifo ecp5.tap
+
+# Change LED colour again
+virscan ecp5.tap $jcapture_write
+vdrscan ecp5.tap 256 4
 
 puts "Collecting the FIFO contents"
 puts "Capture should start when bits 23:16 are 0x55 and bit 8 rises,"

@@ -11,7 +11,7 @@ use ieee.numeric_std.all;
 -- 1/4 the FIFO depth, for "01", 1/2 for "10" and 3/4 for "11".
 
 
-ENTITY debug_fifo IS
+ENTITY vjtag_fifo IS
 	generic (
 		width : integer :=256;
 		depth : integer :=6
@@ -34,7 +34,7 @@ ENTITY debug_fifo IS
 	);
 END entity;
 
-architecture rtl of debug_fifo is
+architecture rtl of vjtag_fifo is
 
 function togray(d : unsigned) return unsigned is begin
 	return d xor ('0'&d(d'high downto 1));
@@ -136,7 +136,7 @@ signal lead_rd_sync2 : std_logic := '0';
 begin
 
 	leadin <= '0' when lead="00" else '1';
-	fullptr <= outptr_prev_gray_sync when lead_rd_sync = lead_wr else leadptr_gray(depth-1 downto 1);
+	fullptr <= outptr_prev_gray_sync when leadprev='0' and lead_rd_sync = lead_wr else leadptr_gray(depth-1 downto 1);
 	
 	process(wr_clk) begin
 		if rising_edge(wr_clk) then

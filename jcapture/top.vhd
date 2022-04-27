@@ -23,11 +23,43 @@ architecture rtl of top is
 	signal update_dr : std_logic;
 	signal reset_ctr : unsigned(5 downto 0) := (others => '0');
 	signal reset_n : std_logic;
+	
+	signal sysclk : std_logic;
+	signal ramclk : std_logic;
+	signal slowclk : std_logic;
+	signal noclk : std_logic;
+
+	component ecp5pll is
+	generic	(
+		in_hz : integer := 25000000;
+		out0_hz : integer := 100000000;
+		out1_hz : integer := 100000000;
+		out1_deg : integer := 270;
+		out2_hz : integer := 50000000
+	);
+	port (
+		clk_i : in std_logic;
+		clk_o : out std_logic_vector(3 downto 0);
+		reset : in std_logic;
+		locked : out std_logic
+	);
+	end component;
+
 begin
 
+	pll : component ecp5pll
+	port map (
+		clk_i => clk_i,
+		clk_o(0) => sysclk,
+		clk_o(1) => ramclk,
+		clk_o(2) => slowclk,
+		clk_o(3) => noclk,
+		reset => '0'
+	);
+
 	reset_n <= reset_ctr(reset_ctr'high);
-	process(clk_i) begin
-		if rising_edge(clk_i) then
+	process(sysclk) begin
+		if rising_edge(sysclk) then
 		 	if reset_n='0' then
 		 		reset_ctr<=reset_ctr+1;
 		 	end if;
@@ -35,15 +67,12 @@ begin
 	end process;
 
 	process(clk_i) begin
-		if rising_edge(clk_i) then
+		if rising_edge(sysclk) then
 			freerunning<=freerunning+1;
 			to_jtag<=std_logic_vector(fval)&std_logic_vector(freerunning);
-			if update_dr='1' then
-				fval<=fval+1;
-			end if;
 		end if;
 		
-		if rising_edge(clk_i) then
+		if rising_edge(sysclk) then
 			if update_dr='1' then
 				led_red<=from_jtag(0);
 				led_green<=from_jtag(1);
@@ -54,7 +83,7 @@ begin
 
 	cap : entity work.jcapture
 	port map(
-		clk => clk_i,
+		clk => sysclk,
 		reset_n => reset_n,
 		-- Design interface
 		d => to_jtag,

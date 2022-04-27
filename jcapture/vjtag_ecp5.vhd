@@ -63,7 +63,7 @@ begin
 	fifo_empty <= fempty;
 	fifo_full <= ffull;
 
-	fifo : entity work.debug_fifo
+	fifo : entity work.vjtag_fifo
 	generic map (
 		width => drwidth,
 		depth => depth
@@ -149,7 +149,7 @@ begin
 		shift_next <= jtdi_mux & shift(irwidth-1 downto 1);
 		
 		process(jtck) begin
-			if rising_edge(jtck) then
+			if falling_edge(jtck) then
 				if capture(0)='1' then
 					shift<=vir_in;
 				end if;
@@ -161,7 +161,7 @@ begin
 		end process;
 		
 		process(jtck) begin
-			if rising_edge(jtck) then
+			if falling_edge(jtck) then
 				if update(0)='1' then
 					q<=shift_next;
 				end if;
@@ -188,7 +188,7 @@ begin
 		shift_next <= jtdi_mux & shift(drwidth-1 downto 1);
 
 		process(jtck) begin
-			if rising_edge(jtck) then
+			if falling_edge(jtck) then
 				frd_en<='0';
 				if capture(1)='1' then
 					shift<=frd;
@@ -204,7 +204,7 @@ begin
 		end process;
 
 		process(jtck) begin
-			if rising_edge(jtck) then
+			if falling_edge(jtck) then
 				if update(1)='1' then
 					q<=shift_next;
 				end if;

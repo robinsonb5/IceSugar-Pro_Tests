@@ -141,7 +141,7 @@ begin
 		shift_next <= jtdi_mux & shift(er1_width-1 downto 1);
 
 		process(jtck) begin
-			if rising_edge(jtck) then
+			if falling_edge(jtck) then
 				frd_en<='0';
 				if capture(0)='1' then
 					shift<=frd;
@@ -157,7 +157,7 @@ begin
 		end process;
 
 		process(jtck) begin
-			if rising_edge(jtck) then
+			if falling_edge(jtck) then
 				if update(0)='1' then
 					q<=shift_next;
 				end if;
@@ -187,7 +187,7 @@ begin
 		shift2_next <= jtdi_mux & shift2(er2_width-1 downto 1);
 		
 		process(jtck) begin
-			if rising_edge(jtck) then
+			if falling_edge(jtck) then
 				if capture(1)='1' then
 					shift2<=d2;
 				end if;
@@ -199,7 +199,7 @@ begin
 		end process;
 		
 		process(jtck) begin
-			if rising_edge(jtck) then
+			if falling_edge(jtck) then
 				if update(1)='1' then
 					q2<=shift2_next;
 				end if;

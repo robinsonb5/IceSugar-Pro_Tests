@@ -120,6 +120,7 @@ begin
 		if reset_n='0' then
 			capstate<=STATE_IDLE;
 			fifo_wr<='0';
+			q <= (others => '0');
 		elsif rising_edge(clk) then
 
 			update<='0';

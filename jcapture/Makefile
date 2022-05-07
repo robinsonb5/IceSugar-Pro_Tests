@@ -3,7 +3,6 @@ TOP=jtagtest
 
 VHDL_OBJS=cdc_pulse.vhd vjtag_fifo.vhd vjtag_ecp5.vhd jcapture_pkg.vhd jcapture.vhd top.vhd
 VERILOG_OBJS=../PLL/ECP5/ecp5pll.sv
-TRELLIS=/usr/local/share/trellis
 
 all:
 	$(info IceSugar-Pro JTAG test.)
@@ -21,7 +20,7 @@ all:
 
 $(TARGET).json: $(VHDL_OBJS)
 	ghdl -a $(VHDL_OBJS)
-	yosys -m ghdl -p "read_verilog $(VERILOG_OBJS); ghdl top; synth_ecp5 -top top -json $@"
+	yosys -m ghdl -p "read_verilog $(VERILOG_OBJS); ghdl top; synth_ecp5 -abc9 -top top -json $@"
 
 $(TARGET)_out.config: $(TARGET).json
 	nextpnr-ecp5 --25k --package CABGA256 --speed 6 --json $< --textcfg $@ --lpf ../board/icesugarpro.lpf --freq 25

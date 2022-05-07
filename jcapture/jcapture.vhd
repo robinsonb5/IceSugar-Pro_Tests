@@ -24,7 +24,6 @@ port(
 	d : in std_logic_vector(jcapture_width-1 downto 0);
 	q : out std_logic_vector(jcapture_width-1 downto 0); -- Optional output data
 	update : out std_logic
-	-- JTAG interface - might as well be internal.
 );	
 end entity;
 

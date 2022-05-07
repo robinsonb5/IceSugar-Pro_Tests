@@ -47,7 +47,7 @@ clean:
 	rm -f *.svf *.bit *.config *.o *.ys *.json *.cf
 
 sim:
-	ghdl -a debug_fifo.vhd sim.vhd
+	ghdl -a -frelaxed-rules debug_fifo.vhd sim.vhd
 	ghdl -e sim
 	ghdl -r sim --wave=sim.ghw --stop-time=5000ns
 

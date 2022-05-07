@@ -35,6 +35,7 @@ architecture rtl of vjtag_ecp5 is
 	-- JTAG signals
 	signal jtck,jtdi,jshift,jupdate,jrstn,jce1,jce2,jrti1,jrti2,jtdo1,jtdo2 : std_logic;
 	signal jtdi_mux : std_logic;
+	signal jtck_inv : std_logic;
 	signal capture : std_logic_vector(1 downto 0);
 	signal update : std_logic_vector(1 downto 0);
 	-- FIFO signals
@@ -97,6 +98,8 @@ begin
 		JTDO2 => jtdo2
 	);
 
+	jtck_inv<=not jtck;
+
 	-- separate the Create capture and update signals for the two channels
 
 	jtagctrl : block
@@ -140,10 +143,8 @@ begin
 		-- First register, provides our virtual IR register.
 		signal shift_next : std_logic_vector(irwidth-1 downto 0);
 		signal shift : std_logic_vector(irwidth-1 downto 0);
-
 		signal q : std_logic_vector(irwidth-1 downto 0);
 	begin
-
 		jtdo1 <= shift(0);
 
 		shift_next <= jtdi_mux & shift(irwidth-1 downto 1);
@@ -169,8 +170,9 @@ begin
 		end process;
 
 		-- Synchronise the update and capture signals to clk
-		cdc_uir : entity work.cdc_pulse port map ( clk_d => jtck, d=>update(0), clk_q => clk, q=>vir_update);
-		cdc_cir : entity work.cdc_pulse port map ( clk_d => jtck, d=>capture(0), clk_q => clk, q=>vir_capture);
+		-- (on the falling edge of jtck)
+		cdc_uir : entity work.cdc_pulse port map ( clk_d => jtck_inv, d=>update(0), clk_q => clk, q=>vir_update);
+		cdc_cir : entity work.cdc_pulse port map ( clk_d => jtck_inv, d=>capture(0), clk_q => clk, q=>vir_capture);
 
 		vir_out <= q;
 	end block;
@@ -212,8 +214,9 @@ begin
 		end	process;
 
 		-- Synchronise the update and capture signals to clk
-		cdc_udr : entity work.cdc_pulse port map ( clk_d => jtck, d=>update(1), clk_q => clk, q=>vdr_update);
-		cdc_cdr : entity work.cdc_pulse port map ( clk_d => jtck, d=>capture(1), clk_q => clk, q=>vdr_capture);
+		-- (on the falling edge of jtck)
+		cdc_udr : entity work.cdc_pulse port map ( clk_d => jtck_inv, d=>update(1), clk_q => clk, q=>vdr_update);
+		cdc_cdr : entity work.cdc_pulse port map ( clk_d => jtck_inv, d=>capture(1), clk_q => clk, q=>vdr_capture);
 
 		vdr_out<=q;
 

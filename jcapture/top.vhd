@@ -66,7 +66,7 @@ begin
 		end if;
 	end process;
 
-	process(clk_i) begin
+	process(sysclk) begin
 		if rising_edge(sysclk) then
 			freerunning<=freerunning+1;
 			to_jtag<=std_logic_vector(fval)&std_logic_vector(freerunning);

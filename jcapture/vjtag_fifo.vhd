@@ -73,6 +73,7 @@ signal leadin_sync2 : std_logic;
 signal leadin_d : std_logic;
 signal lead_wr_sync : std_logic := '0';
 signal lead_wr_sync2 : std_logic := '0';
+signal lead_wr_upd : std_logic := '0';
 signal lead_rd_d : std_logic;
 begin
 
@@ -86,6 +87,7 @@ begin
 			leadin_d <= leadin_sync;
 			lead_wr_sync2 <= lead_wr;
 			lead_wr_sync <= lead_wr_sync2;
+			lead_wr_upd <= lead_wr_sync;
 		end if;
 	end process;
 
@@ -95,7 +97,7 @@ begin
 	empty <= empty_c or leadin_sync;	-- Make sure the FIFO's considered empty while a lead-in is in progress...
 
 	outptr_next<=leadptr+1 when lead_rd /= lead_wr_sync else outptr+1;
-	outptr_prev<=leadptr-1 when lead_rd /= lead_wr else outptr-1;
+	outptr_prev<=leadptr-1 when lead_rd /= lead_wr_sync else outptr-1; -- Gray counter updated on lead_wr_upd
 
 	process(rd_clk,reset_rd(1)) begin
 		if reset_rd(1)='0' then
@@ -106,7 +108,7 @@ begin
 		elsif rising_edge(rd_clk) then
 			dout <= storage(to_integer(outptr_gray));
 			lead_rd<=lead_rd_d;
-			if rd_trigger='1' or lead_rd /= lead_wr_sync then
+			if rd_trigger='1' or lead_rd /= lead_wr_upd then
 				outptr<=outptr_next;
 				outptr_gray <= togray(outptr_next);
 				outptr_prev_gray<=togray(outptr_prev);

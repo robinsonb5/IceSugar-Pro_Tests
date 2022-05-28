@@ -1,0 +1,26 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Sun May 29 09:11:29 2022
+[*]
+[dumpfile] "/home/amr/FPGA/ECP5/MMM-v4r0Tests/jcapture/capture.vcd"
+[dumpfile_mtime] "Sun May 29 09:11:25 2022"
+[dumpfile_size] 0
+[savefile] "/home/amr/FPGA/ECP5/MMM-v4r0Tests/jcapture/capture.gtkw"
+[timestart] 0
+[size] 1000 600
+[pos] -1 -1
+*-7.367732 320 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 276
+[signals_width] 142
+[sst_expanded] 1
+[sst_vpaned_height] 158
+@28
+TOP.lsb
+TOP.nsb
+@22
+TOP.count_lo[13:0]
+TOP.count_hi[15:0]
+@23
+TOP.id1[31:0]
+[pattern_trace] 1
+[pattern_trace] 0

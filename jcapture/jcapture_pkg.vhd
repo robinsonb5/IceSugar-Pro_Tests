@@ -7,7 +7,7 @@ package jcapture_pkg is
 
 	constant jcapture_width : integer := 256;
 	constant jcapture_triggerwidth : integer := 24;
-	constant jcapture_depth : integer := 5;
+	constant jcapture_depth : integer := 7;
 
 	-- Internal constants
 
@@ -22,6 +22,9 @@ package jcapture_pkg is
 	constant jcapture_ir_setinvert : std_logic_vector(jcapture_irsize-1 downto 0) := "0110";
 	constant jcapture_ir_setedge : std_logic_vector(jcapture_irsize-1 downto 0) := "0111";
 	constant jcapture_ir_capture : std_logic_vector(jcapture_irsize-1 downto 0) := "1000";
+	constant jcapture_ir_capturewidth : std_logic_vector(jcapture_irsize-1 downto 0) := "1001";
+	constant jcapture_ir_capturedepth : std_logic_vector(jcapture_irsize-1 downto 0) := "1010";
+	constant jcapture_ir_triggerwidth : std_logic_vector(jcapture_irsize-1 downto 0) := "1011";
 	constant jcapture_ir_bypass : std_logic_vector(jcapture_irsize-1 downto 0) := "1111";
 end package;
 

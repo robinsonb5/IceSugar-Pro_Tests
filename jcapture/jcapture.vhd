@@ -145,6 +145,7 @@ begin
 					if trigger='1' then
 						capstate<=STATE_FILL;
 						leadin<="00";
+						fifo_wr<='1';
 					end if;
 				when STATE_FILL =>
 					if fifo_full='1' then
@@ -164,8 +165,17 @@ begin
 				case vir_from_jtag is				
 					when jcapture_ir_capture =>
 						capstate <= STATE_CAPTURE;
-					when jcapture_ir_ABORT =>
+					when jcapture_ir_abort =>
 						capstate <= STATE_IDLE;
+					when jcapture_ir_capturewidth =>
+						to_fifo(15 downto 0)<=std_logic_vector(to_unsigned(jcapture_width,16));
+						fifo_wr<='1';
+					when jcapture_ir_capturedepth =>
+						to_fifo(15 downto 0)<=std_logic_vector(to_unsigned(jcapture_depth,16));
+						fifo_wr<='1';
+					when jcapture_ir_triggerwidth =>
+						to_fifo(15 downto 0)<=std_logic_vector(to_unsigned(jcapture_triggerwidth,16));
+						fifo_wr<='1';
 					when others =>
 						null;
 				end case;

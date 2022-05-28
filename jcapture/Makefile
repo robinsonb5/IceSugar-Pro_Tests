@@ -17,6 +17,8 @@ all:
 	$(info )
 	$(info > make run - execute a Tcl script to interact with the configured FPGA.)
 	$(info )
+	$(info > make capture - execute a Tcl bridge between gtkwave and the FPGA )
+	$(info )
 
 $(TARGET).json: $(VHDL_OBJS)
 	ghdl -a $(VHDL_OBJS)
@@ -34,6 +36,12 @@ build: ${TARGET}.svf
 
 run: ${TARGET}.svf
 	openocd -f ../tools/cmsisdap.cfg -f test.tcl
+
+capture: ${TARGET}.svf
+	-rm capture.vcd
+	mkfifo capture.vcd
+	gtkwave capture.vcd capture.gtkw &
+	openocd -f ../tools/cmsisdap.cfg -f capvcd.tcl
 
 config: ${TARGET}.svf
 	openocd -f ../tools/cmsisdap.cfg -c \
